@@ -252,8 +252,6 @@ class LatentSlaveBuilder(AbstractSlaveBuilder):
         def substantiation_failed(f):
             builder_status.addPointEvent(['removing', 'latent',
                                           self.slave.slavename])
-            self.slave.disconnect()
-            # TODO: should failover to a new Build
             return f
 
         def substantiation_cancelled(res):
@@ -283,6 +281,7 @@ class LatentSlaveBuilder(AbstractSlaveBuilder):
                 return res
 
             def substantiation_failed(res):
+                self.state = LATENT
                 event.text = ["substantiate", "failed"]
                 # TODO add log of traceback to event
                 event.finish()
