@@ -466,7 +466,7 @@ class BuildStep(object, properties.PropertiesMixin):
             self._step_status.setText(self.describe(True) +
                                       ["exception", "slave", "lost"])
             self._step_status.setText2(["exception", "slave", "lost"])
-            self.finished(RETRY)
+            self.finished(EXCEPTION)
             return
 
         log.err(why, "BuildStep.failed; traceback follows")
