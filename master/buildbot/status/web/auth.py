@@ -15,6 +15,7 @@
 
 
 import os
+import requests
 
 from buildbot.status.web.base import ActionResource
 from buildbot.status.web.base import HtmlResource
@@ -89,6 +90,42 @@ class BasicAuth(AuthBase):
         self.err = "Invalid username or password"
         return False
 
+class Oauth2Auth(BasicAuth):
+    # implements(IAuth)
+    """Implement basic authentication against a list of user/passwd."""
+
+    # userpass = []
+    googleData = {}
+    """List of user/pass tuples."""
+
+    def __init__(self, userpass, googleId = None, googleSecret = None):
+        """C{userpass} is a list of (user, passwd)."""
+        for item in userpass:
+            assert isinstance(item, tuple) or isinstance(item, list)
+            u, p = item
+            assert isinstance(u, str)
+            assert isinstance(p, str)
+        self.userpass = userpass
+        self.googleId = googleId
+        self.googleSecret = googleSecret
+
+    def authenticate(self, user, passwd, token):
+        if token:
+            r = requests.get("https://www.googleapis.com/oauth2/v2/userinfo?fields=email,id,name,picture&access_token="+token)
+            if r.status_code == 200:
+                self.googleData = r.json()
+                return True
+        else:    
+            """Check that C{user}/C{passwd} is a valid user/pass tuple."""
+            if not self.userpass:
+                self.err = "Bad self.userpass data"
+                return False
+            for u, p in self.userpass:
+                if user == u and passwd == p:
+                    self.err = ""
+                    return True
+            self.err = "Invalid username or password"
+        return False
 
 class HTPasswdAuth(AuthBase):
     implements(IAuth)

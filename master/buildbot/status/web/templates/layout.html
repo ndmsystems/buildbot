@@ -37,15 +37,17 @@
         - <a href="{{ path_to_root }}json/help">JSON API</a>
         - <a href="{{ path_to_root }}about">About</a>
         {% endif %}
+
     <div class="auth">    
     {% if authz.authenticated(request) %}
-    {{ authz.getUsernameHTML(request) }}
-    |<a href="{{ path_to_root }}logout">Logout</a>
+    {{ authz.getUsername(request) }}
+    <a href="{{ path_to_root }}logout">Logout</a>
     {% elif authz.useHttpHeader and authz.httpLoginUrl %}
     <a href="{{ authz.httpLoginUrl }}">Login</a>
     {% elif authz.auth %}
     <form method="post" name="login" action="{{ path_to_root }}login">
-    <input type="text" name="username" size="10" />
+    <a href="https://accounts.google.com/o/oauth2/auth?redirect_uri=http%3A%2F%2Flocalhost%3A8010%2Flogin&response_type=code&client_id=242692616574-h25armq6ga7v1i6k90magjnrnijfkeco.apps.googleusercontent.com&scope=email%20profile">Sign in with Google</a>
+    <input type="text" name="username" size="100" />
     <input type="password" name="passwd" size="10" />
     <input type="submit" value="login" />
     </form>

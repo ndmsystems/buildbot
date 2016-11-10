@@ -15,7 +15,10 @@
 
 from buildbot.status.web.auth import IAuth
 from buildbot.status.web.session import SessionManager
+import requests
 from twisted.internet import defer
+from twisted.web.client import Agent
+from twisted.web.http_headers import Headers
 
 COOKIE_KEY = "BuildBotSession"
 
@@ -55,6 +58,8 @@ class Authz(object):
 
         self.useHttpHeader = useHttpHeader
         self.httpLoginUrl = httpLoginUrl
+        self.googleId = auth.googleId
+        self.googleSecret = auth.googleSecret
 
         self.config = dict((a, default_action) for a in self.knownActions)
         self.config['view'] = view
@@ -86,7 +91,9 @@ class Authz(object):
             return s.infos
 
     def getUsername(self, request):
-        """Get the userid of the user"""
+        # If there is data obtained from google via oauth2, return it 
+        # (it will be None if we didn't use google sign in)
+        return self.auth.googleData.get(u'name')
         if self.useHttpHeader:
             return request.getUser()
         s = self.session(request)
@@ -130,6 +137,7 @@ class Authz(object):
 
     def actionAllowed(self, action, request, *args):
         """Is this ACTION allowed, given this http REQUEST?"""
+        print action, request        
         if action not in self.knownActions:
             raise KeyError("unknown action")
         cfg = self.config.get(action, False)
@@ -163,16 +171,31 @@ class Authz(object):
 
     def login(self, request):
         """Login one user, and return session cookie"""
+        print request
+        accessToken = None
         if self.authenticated(request):
             return defer.succeed(False)
-
+        if request.args.get("code"):
+            # Looks like someone tries to sign in with google
+            code = request.args.get("code")[0]
+            # print code
+            # print self.googleId
+            # print self.googleSecret
+            r = requests.post('https://www.googleapis.com/oauth2/v4/token', 
+                                data = {'code': code,
+                                        'client_id': self.googleId,
+                                        'client_secret': self.googleSecret,
+                                        'redirect_uri': 'http://localhost:8010/login',
+                                        'grant_type': 'authorization_code'})
+            if r.status_code == 200:
+                accessToken = r.json().get(u'access_token')
         user = request.args.get("username", ["<unknown>"])[0]
         passwd = request.args.get("passwd", ["<no-password>"])[0]
-        if user == "<unknown>" or passwd == "<no-password>":
-            return defer.succeed(False)
+        # if user == "<unknown>" or passwd == "<no-password>":
+        #     return defer.succeed(False)
         if not self.auth:
             return defer.succeed(False)
-        d = defer.maybeDeferred(self.auth.authenticate, user, passwd)
+        d = defer.maybeDeferred(self.auth.authenticate, user, passwd, accessToken)
 
         def check_authenticate(res):
             if res:
