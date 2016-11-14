@@ -19,6 +19,7 @@ import requests
 from twisted.internet import defer
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
+#from twisted.web.util import redirectTo
 
 COOKIE_KEY = "BuildBotSession"
 
@@ -58,8 +59,9 @@ class Authz(object):
 
         self.useHttpHeader = useHttpHeader
         self.httpLoginUrl = httpLoginUrl
-        self.googleId = auth.googleId
-        self.googleSecret = auth.googleSecret
+        if self.auth:
+            self.googleId = auth.googleId
+            self.googleSecret = auth.googleSecret
 
         self.config = dict((a, default_action) for a in self.knownActions)
         self.config['view'] = view
@@ -181,12 +183,14 @@ class Authz(object):
             # print code
             # print self.googleId
             # print self.googleSecret
+            status = request.site.buildbot_service.master.status
             r = requests.post('https://www.googleapis.com/oauth2/v4/token', 
                                 data = {'code': code,
                                         'client_id': self.googleId,
                                         'client_secret': self.googleSecret,
-                                        'redirect_uri': 'http://localhost:8010/login',
+                                        'redirect_uri': status.getBuildbotURL()+"login",
                                         'grant_type': 'authorization_code'})
+            print r.text
             if r.status_code == 200:
                 accessToken = r.json().get(u'access_token')
         user = request.args.get("username", ["<unknown>"])[0]
@@ -207,6 +211,12 @@ class Authz(object):
                 return False
         d.addBoth(check_authenticate)
         return d
+
+    # def redirect(self, request):
+    #     status = request.site.buildbot_service.master.status
+    #     # for i in dir(status): print i
+    #     # print redirectTo("http://mail.ru", request)
+    #     # print r.url
 
     def logout(self, request):
         if COOKIE_KEY in request.received_cookies:

@@ -24,6 +24,7 @@ from buildbot.status.web.auth import AuthFailResource
 from buildbot.status.web.auth import AuthzFailResource
 from buildbot.status.web.auth import LoginResource
 from buildbot.status.web.auth import LogoutResource
+from buildbot.status.web.auth import Oauth2Redirect
 from buildbot.status.web.authz import Authz
 from buildbot.status.web.base import StaticFile
 from buildbot.status.web.base import createJinjaEnv
@@ -440,6 +441,7 @@ class WebStatus(service.MultiService):
         self.putChild("users", UsersResource())
         self.putChild("login", LoginResource())
         self.putChild("logout", LogoutResource())
+        self.putChild("redirect", Oauth2Redirect())
 
     def __repr__(self):
         if self.http_port is None:

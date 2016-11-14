@@ -191,7 +191,7 @@ def path_always_viewable(request):
     If these paths were not accessible by all then the site would fail to
     function, so authz should be ignored.
     """
-    return request.path == "/" or request.path == "/login"
+    return request.path == "/" or request.path == "/login" or request.path == "/authfail" or request.path == "/redirect"
 
 
 class Box:

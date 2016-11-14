@@ -272,3 +272,14 @@ class LogoutResource(ActionResource):
         status = request.site.buildbot_service.master.status
         root = status.getBuildbotURL()
         return request.requestHeaders.getRawHeaders('referer', [root])[0]
+
+
+class Oauth2Redirect(ActionResource):
+
+    def performAction(self, request):
+        authz = self.getAuthz(request)
+        status = request.site.buildbot_service.master.status
+        url = "https://accounts.google.com/o/oauth2/auth?redirect_uri="+status.getBuildbotURL()+"login&response_type=code&client_id="+authz.googleId+"&scope=email profile"
+        return url
+        # That's how we access config!!!        print status.master.config
+
