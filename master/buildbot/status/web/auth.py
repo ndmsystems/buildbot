@@ -279,7 +279,8 @@ class Oauth2Redirect(ActionResource):
     def performAction(self, request):
         authz = self.getAuthz(request)
         status = request.site.buildbot_service.master.status
-        url = "https://accounts.google.com/o/oauth2/auth?redirect_uri="+status.getBuildbotURL()+"login&response_type=code&client_id="+authz.googleId+"&scope=email profile"
+        path = "https://accounts.google.com/o/oauth2/auth"
+        domain = status.master.config.properties['googleDomain']
+        bbHost = status.getBuildbotURL()
+        url = path+"?redirect_uri="+bbHost+"login&response_type=code&client_id="+authz.googleId+"&hd="+domain+"&scope=email profile"
         return url
-        # That's how we access config!!!        print status.master.config
-
