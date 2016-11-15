@@ -15,11 +15,13 @@
 
 from buildbot.status.web.auth import IAuth
 from buildbot.status.web.session import SessionManager
-import requests
 from twisted.internet import defer
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
-#from twisted.web.util import redirectTo
+from twisted.web.util import redirectTo
+import base64
+import requests
+import jwt
 
 COOKIE_KEY = "BuildBotSession"
 
@@ -95,7 +97,7 @@ class Authz(object):
     def getUsername(self, request):
         # If there is data obtained from google via oauth2, return it 
         # (it will be None if we didn't use google sign in)
-        return self.auth.googleData.get(u'name')
+#        return self.auth.googleData.get(u'name')
         if self.useHttpHeader:
             return request.getUser()
         s = self.session(request)
@@ -173,34 +175,28 @@ class Authz(object):
 
     def login(self, request):
         """Login one user, and return session cookie"""
-        
-        print dir(request)
-        accessToken = None
+        idToken = None
+        status = request.site.buildbot_service.master.status
+        domain = status.master.config.properties['googleDomain']
         if self.authenticated(request):
             return defer.succeed(False)
         if request.args.get("code"):
             # Looks like someone tries to sign in with google
             code = request.args.get("code")[0]
-            # print code
-            # print self.googleId
-            # print self.googleSecret
-            status = request.site.buildbot_service.master.status
             r = requests.post('https://www.googleapis.com/oauth2/v4/token', 
                                 data = {'code': code,
                                         'client_id': self.googleId,
                                         'client_secret': self.googleSecret,
                                         'redirect_uri': status.getBuildbotURL()+"login",
                                         'grant_type': 'authorization_code'})
-            # print r.text
             if r.status_code == 200:
                 accessToken = r.json().get(u'access_token')
+                idToken = jwt.decode(r.json().get(u'id_token'), verify = False)
         user = request.args.get("username", ["<unknown>"])[0]
         passwd = request.args.get("passwd", ["<no-password>"])[0]
-        # if user == "<unknown>" or passwd == "<no-password>":
-        #     return defer.succeed(False)
         if not self.auth:
             return defer.succeed(False)
-        d = defer.maybeDeferred(self.auth.authenticate, user, passwd, accessToken)
+        d = defer.maybeDeferred(self.auth.authenticate, user, passwd, idToken, domain)
 
         def check_authenticate(res):
             if res:
@@ -212,12 +208,6 @@ class Authz(object):
                 return False
         d.addBoth(check_authenticate)
         return d
-
-    # def redirect(self, request):
-    #     status = request.site.buildbot_service.master.status
-    #     # for i in dir(status): print i
-    #     # print redirectTo("http://mail.ru", request)
-    #     # print r.url
 
     def logout(self, request):
         if COOKIE_KEY in request.received_cookies:

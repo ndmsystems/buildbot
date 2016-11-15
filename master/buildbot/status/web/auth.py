@@ -95,7 +95,7 @@ class Oauth2Auth(BasicAuth):
     """Implement basic authentication against a list of user/passwd."""
 
     # userpass = []
-    googleData = {}
+    # googleData = {}
     """List of user/pass tuples."""
 
     def __init__(self, userpass, googleId = None, googleSecret = None):
@@ -109,11 +109,9 @@ class Oauth2Auth(BasicAuth):
         self.googleId = googleId
         self.googleSecret = googleSecret
 
-    def authenticate(self, user, passwd, token):
-        if token:
-            r = requests.get("https://www.googleapis.com/oauth2/v2/userinfo?fields=email,id,name,picture&access_token="+token)
-            if r.status_code == 200:
-                self.googleData = r.json()
+    def authenticate(self, user, passwd, idToken, domain):
+        if idToken:
+            if idToken['email'].split('@')[1] == domain:
                 return True
         else:    
             """Check that C{user}/C{passwd} is a valid user/pass tuple."""
@@ -255,9 +253,7 @@ class LoginResource(ActionResource):
         def on_login(res):
             if res:
                 status = request.site.buildbot_service.master.status
-                root = status.getBuildbotURL()
-                return request.requestHeaders.getRawHeaders('referer',
-                                                            [root])[0]
+                return status.getBuildbotURL()
             else:
                 return path_to_authfail(request)
         d.addBoth(on_login)
@@ -282,5 +278,4 @@ class Oauth2Redirect(ActionResource):
         path = "https://accounts.google.com/o/oauth2/auth"
         domain = status.master.config.properties['googleDomain']
         bbHost = status.getBuildbotURL()
-        url = path+"?redirect_uri="+bbHost+"login&response_type=code&client_id="+authz.googleId+"&hd="+domain+"&scope=email profile"
-        return url
+        return path+"?redirect_uri="+bbHost+"login&response_type=code&client_id="+authz.googleId+"&hd="+domain+"&scope=email profile"
