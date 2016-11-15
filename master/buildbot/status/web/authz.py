@@ -139,7 +139,7 @@ class Authz(object):
 
     def actionAllowed(self, action, request, *args):
         """Is this ACTION allowed, given this http REQUEST?"""
-        print action, request        
+        # print action, request        
         if action not in self.knownActions:
             raise KeyError("unknown action")
         cfg = self.config.get(action, False)
@@ -173,7 +173,8 @@ class Authz(object):
 
     def login(self, request):
         """Login one user, and return session cookie"""
-        print request
+        
+        print dir(request)
         accessToken = None
         if self.authenticated(request):
             return defer.succeed(False)
@@ -190,7 +191,7 @@ class Authz(object):
                                         'client_secret': self.googleSecret,
                                         'redirect_uri': status.getBuildbotURL()+"login",
                                         'grant_type': 'authorization_code'})
-            print r.text
+            # print r.text
             if r.status_code == 200:
                 accessToken = r.json().get(u'access_token')
         user = request.args.get("username", ["<unknown>"])[0]
