@@ -95,9 +95,6 @@ class Authz(object):
             return s.infos
 
     def getUsername(self, request):
-        # If there is data obtained from google via oauth2, return it 
-        # (it will be None if we didn't use google sign in)
-#        return self.auth.googleData.get(u'name')
         if self.useHttpHeader:
             return request.getUser()
         s = self.session(request)
@@ -141,7 +138,6 @@ class Authz(object):
 
     def actionAllowed(self, action, request, *args):
         """Is this ACTION allowed, given this http REQUEST?"""
-        # print action, request        
         if action not in self.knownActions:
             raise KeyError("unknown action")
         cfg = self.config.get(action, False)
@@ -151,6 +147,8 @@ class Authz(object):
                     return defer.succeed(False)
 
                 def check_authenticate(res):
+                    # Here we call callable passing username to it
+                    # Callable returns true or false
                     if callable(cfg) and not cfg(self.getUsername(request), *args):
                         return False
                     return True
@@ -180,6 +178,8 @@ class Authz(object):
         domain = status.master.config.properties['googleDomain']
         if self.authenticated(request):
             return defer.succeed(False)
+        user = request.args.get("username", ["<unknown>"])[0]
+        passwd = request.args.get("passwd", ["<no-password>"])[0]
         if request.args.get("code"):
             # Looks like someone tries to sign in with google
             code = request.args.get("code")[0]
@@ -192,8 +192,7 @@ class Authz(object):
             if r.status_code == 200:
                 accessToken = r.json().get(u'access_token')
                 idToken = jwt.decode(r.json().get(u'id_token'), verify = False)
-        user = request.args.get("username", ["<unknown>"])[0]
-        passwd = request.args.get("passwd", ["<no-password>"])[0]
+                user = idToken['email']
         if not self.auth:
             return defer.succeed(False)
         d = defer.maybeDeferred(self.auth.authenticate, user, passwd, idToken, domain)
