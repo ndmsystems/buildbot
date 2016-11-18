@@ -602,6 +602,9 @@ class BuildersResource(HtmlResource):
         status = self.getStatus(req)
         encoding = getRequestCharset(req)
 
+        # retreive all builders descriptions at once and making a list of name: description pairs
+        bldrDescriptions = {b.name:b.description for b in status.master.config.builders}
+
         showTags = req.args.get("tag", [])
         if not showTags:
             showTags = req.args.get("category", [])
@@ -628,13 +631,13 @@ class BuildersResource(HtmlResource):
 
         cxt['branches'] = branches
         bs = cxt['builders'] = []
-
         building = 0
         online = 0
         base_builders_url = path_to_root(req) + "builders/"
         for bn in builders:
             bld = {'link': base_builders_url + urllib.quote(bn, safe=''),
                    'tags': status.getBuilder(bn).tags,
+                   'description': bldrDescriptions[bn],
                    'name': bn}
             bs.append(bld)
 
