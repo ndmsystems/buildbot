@@ -71,6 +71,10 @@ class OneLinePerBuild(HtmlResource, BuildLineMixin):
         cxt['builders'] = builders
 
         builds = cxt['builds'] = []
+        for builderName in status.getBuilderNames():
+            for build in status.getBuilder(builderName).getCurrentBuilds():
+                builds.append(self.get_line_values(req, build))
+
         for build in g:
             builds.append(self.get_line_values(req, build))
 
