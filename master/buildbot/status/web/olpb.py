@@ -17,6 +17,11 @@
 from buildbot.status.web.base import BuildLineMixin
 from buildbot.status.web.base import HtmlResource
 from buildbot.status.web.base import map_branches
+from buildbot.status.web.base import path_to_builder
+import time
+from twisted.python.failure import Failure
+from twisted.internet import defer
+
 
 # /one_line_per_build
 #  accepts builder=, branch=, numbuilds=, reload=
@@ -53,8 +58,34 @@ class OneLinePerBuild(HtmlResource, BuildLineMixin):
                 pass
         return None
 
+    @defer.inlineCallbacks
     def content(self, req, cxt):
         status = self.getStatus(req)
+        cxt['pending'] = []
+
+        for bname in status.getBuilderNames():
+            bldr = status.getBuilder(bname)
+            statuses = yield bldr.getPendingBuildRequestStatuses()
+            for pb in statuses:
+                sbmTime = yield pb.getSubmitTime()
+                src = yield pb.getSourceStamp()
+                values = {'class': None,
+                          'builder_name': bname,
+                          'buildnum': None,
+                          'results': None,
+                          'text': "Pending",
+                          'buildurl': None,
+                          'builderurl': path_to_builder(req, bldr),
+                          'rev_list': [],
+                          'multiple_revs': None,
+                          'time': time.strftime(self.LINE_TIME_FORMAT,
+                                                time.localtime(sbmTime)),
+                          'include_builder': True,
+                          'reason': '--',
+                          'interested_users': None,
+                          }
+                cxt['pending'].append(values)
+
         try:
             numbuilds = int(req.args.get("numbuilds", [self.numbuilds])[0])
         except ValueError:
@@ -94,10 +125,11 @@ class OneLinePerBuild(HtmlResource, BuildLineMixin):
 
         cxt['num_online'] = online
         cxt['num_building'] = building
+        for rq in cxt['pending']:
+            cxt['builds'].insert(0, rq)
 
         template = req.site.buildbot_service.templates.get_template('onelineperbuild.html')
-        return template.render(**cxt)
-
+        defer.returnValue(template.render(**cxt))
 
 # /one_line_per_build/$BUILDERNAME
 #  accepts branch=, numbuilds=
