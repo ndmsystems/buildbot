@@ -125,7 +125,7 @@ class OneLinePerBuild(HtmlResource, BuildLineMixin):
 
         cxt['num_online'] = online
         cxt['num_building'] = building
-        for rq in cxt['pending']:
+        for rq in sorted(cxt['pending'], key = lambda d: d['time']):
             cxt['builds'].insert(0, rq)
 
         template = req.site.buildbot_service.templates.get_template('onelineperbuild.html')
