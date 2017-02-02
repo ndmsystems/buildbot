@@ -621,6 +621,11 @@ form.command_forcebuild {
     margin: .5em;
 }
 
+form.command_forcebuild > .row {
+    border-top: 1px dotted gray;
+    padding: .5em 0;
+}
+
 form.command_forcebuild .force-textarea > .label {
     display: block;
 }
