@@ -70,6 +70,7 @@ class OneLinePerBuild(HtmlResource, BuildLineMixin):
                 sbmTime = yield pb.getSubmitTime()
                 src = yield pb.getSourceStamp()
                 values = {'class': None,
+						  'id': pb.brid,
                           'builder_name': bname,
                           'buildnum': None,
                           'results': None,
