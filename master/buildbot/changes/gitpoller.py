@@ -296,7 +296,7 @@ class GitPoller(base.PollingChangeSource, StateMixin):
 
     def _dovccmd(self, command, args, path=None):
         d = utils.getProcessOutputAndValue(self.gitbin,
-                                           [command] + args, path=path, env=os.environ)
+                                           [command] + [a.encode("utf-8") for a in args], path=path, env=os.environ)
 
         def _convert_nonzero_to_failure(res,
                                         command,
